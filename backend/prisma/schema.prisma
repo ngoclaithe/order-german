@@ -1,0 +1,155 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String        @id @default(uuid())
+  email     String        @unique
+  password  String
+  phone     String?
+  address   String?
+  whatsapp  String?
+  telegram  String?
+  role      Role          @default(USER)
+  orders    Order[]
+  addresses UserAddress[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model UserAddress {
+  id        String   @id @default(uuid())
+  label     String   // e.g. "Home", "Office"
+  address   String
+  phone     String
+  isDefault Boolean  @default(false)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  USER
+  ADMIN
+  CASHIER
+}
+
+model MenuCategory {
+  id        String     @id @default(uuid())
+  name      String
+  items     MenuItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model MenuItem {
+  id            String         @id @default(cuid())
+  name          String
+  description   String?
+  price         Float
+  originalPrice Float?
+  imageUrl      String?
+  isActive      Boolean        @default(true)
+  isCombo       Boolean        @default(false)
+  categoryId    String
+  category      MenuCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  toppingGroups ToppingGroup[]
+  orderItems    OrderItem[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model ToppingGroup {
+  id                String          @id @default(uuid())
+  name              String
+  requiresSelection Boolean         @default(false)
+  multipleSelection Boolean         @default(true)
+  menuItemId        String
+  menuItem          MenuItem        @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  options           ToppingOption[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+}
+
+model ToppingOption {
+  id                String             @id @default(uuid())
+  name              String
+  price             Float              @default(0)
+  toppingGroupId    String
+  toppingGroup      ToppingGroup       @relation(fields: [toppingGroupId], references: [id], onDelete: Cascade)
+  orderItemToppings OrderItemTopping[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+model Voucher {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  discount    Float    // E.g., 20% or 5 Euro
+  isPercent   Boolean  @default(true)
+  isActive    Boolean  @default(true)
+  orders      Order[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  DELIVERING
+  COMPLETED
+  CANCELLED
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  userId      String?
+  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  guestName   String?
+  guestPhone  String?
+  guestAddress String?
+  status      OrderStatus @default(PENDING)
+  totalAmount Float
+  shippingFee Float       @default(0)
+  cancelNote  String?
+  voucherId   String?
+  voucher     Voucher?    @relation(fields: [voucherId], references: [id], onDelete: SetNull)
+  discountApplied Float   @default(0)
+  orderItems  OrderItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        String             @id @default(uuid())
+  orderId   String
+  order     Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId String
+  menuItem  MenuItem           @relation(fields: [menuItemId], references: [id])
+  quantity  Int
+  price     Float
+  toppings  OrderItemTopping[]
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+}
+
+model OrderItemTopping {
+  id              String        @id @default(uuid())
+  orderItemId     String
+  orderItem       OrderItem     @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  toppingOptionId String
+  toppingOption   ToppingOption @relation(fields: [toppingOptionId], references: [id])
+  price           Float
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
