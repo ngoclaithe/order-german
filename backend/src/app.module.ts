@@ -17,6 +17,7 @@ import { AddressModule } from './address/address.module';
     ConfigModule.forRoot(),
     ServeStaticModule.forRoot({
       rootPath: join(process.cwd(), 'public'),
+      serveRoot: '/api/v1',
     }),
     PrismaModule,
     MenuModule,
